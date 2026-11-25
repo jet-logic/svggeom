@@ -108,7 +108,7 @@ class TestPathLCConfirmedBugs(unittest.TestCase):
         self.assertAlmostEqual(a[1], b[1], places=6)
 
     # Bug 2 -- segment_at clamp ignored
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_segment_at_clamp_is_respected(self):
         p = PathLC.parse("M0,0 L10,0")
         seg, t = p.segment_at(1.5, clamp=True)
@@ -116,27 +116,27 @@ class TestPathLCConfirmedBugs(unittest.TestCase):
         self.assertAlmostEqual(seg.point_at(t)[0], 10.0)
 
     # Bug 3 -- ZeroDivisionError on zero-length path
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_segment_at_length_zero_length_path(self):
         p = PathLC.at((10, 10))
         seg, _n, _N = p.segment_at_length(5.0)
         self.assertIsNone(seg)
 
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_point_at_length_zero_length_path(self):
         p = PathLC.at((10, 10))
         pt = p.point_at_length(5.0)
         self.assertIsNotNone(pt)
 
     # Bug 4 -- reversed() on a single-move path
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_reverse_single_move_path(self):
         p = PathLC.at((10, 10))
         rev = p.reversed()
         self.assertEqual(rev.describe(), "M10,10")
 
     # Bug 5 -- reversed() drops trailing Move subpaths
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_reverse_keeps_trailing_move(self):
         p = PathLC.parse("M0,0 L10,0 M99,99")
         rev = p.reversed()

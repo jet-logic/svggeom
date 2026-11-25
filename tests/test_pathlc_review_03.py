@@ -121,7 +121,7 @@ class TestPathLCBugs(unittest.TestCase):
         self.assertIsNotNone(pt)
         self.assertTrue(isclose(pt[0], 0.0) and isclose(pt[1], 0.0))
 
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_reverse_move_only_path(self):
         """Reversing a path that is only a Move should succeed and yield an
         equivalent path. Currently raises RuntimeError('Can not reverse').
@@ -134,7 +134,7 @@ class TestPathLCBugs(unittest.TestCase):
             isclose(r.point_at(0)[0], 5.0) and isclose(r.point_at(0)[1], 5.0)
         )
 
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_reverse_closed_path_preserves_closedness(self):
         """Reversing a path that ends with Z should produce a path that is still
         closed (ends with Z / CloseLC). Currently the Close is turned into a

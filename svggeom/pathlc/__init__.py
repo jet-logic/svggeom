@@ -1,6 +1,6 @@
 from typing import Any, Optional, Sequence
 from weakref import WeakKeyDictionary
-from .command import BaseLC, MoveLC
+from .command import BaseLC, CloseLC, MoveLC
 
 
 class PathLC:
@@ -109,7 +109,7 @@ class PathLC:
         cur: BaseLC | None = self._tail
         if cur:
             len = path_length(cur)
-            seg, n, N = segment_at_length(cur, T * len, len)
+            seg, n, N = segment_at_length(cur, T * len, len, clamp)
             return seg, (0 if N == 0 else n / N)
         return (None, float("nan"))
 
@@ -161,11 +161,49 @@ class PathLC:
         return [] if self._tail is None else self._tail.terms(**kwargs)
 
     def reversed(self, _next: BaseLC | None = None):
-        cur = self._tail
-        rev = cur.reversed(_next)
-        if rev:
-            return PathLC(rev)
-        raise RuntimeError("Can not reverse")
+        """Return a path whose drawable subpaths run in reverse order.
+
+        Subpaths are reversed independently and their order is reversed too;
+        move-only subpaths are retained. Closed subpaths remain closed.
+        """
+        commands = list(reversed(list(self._tail._each())))
+        subpaths: list[list[BaseLC]] = []
+        for command in commands:
+            if isinstance(command, MoveLC):
+                subpaths.append([command])
+            elif subpaths:
+                subpaths[-1].append(command)
+            else:
+                subpaths.append([command])
+
+        result: BaseLC | None = _next
+        for subpath in reversed(subpaths):
+            # Detach this subpath from earlier subpaths before invoking the
+            # command-level recursive reversal implementation.
+            isolated: BaseLC | None = None
+            for command in subpath:
+                isolated = command.with_prev(isolated)
+            assert isolated is not None
+            original_tail = isolated
+            reversed_tail = original_tail.reversed(None)
+            if reversed_tail is None:
+                # A move-only subpath reverses to the same move.
+                first = isolated.first()
+                assert first is not None
+                reversed_tail = MoveLC(None, first.to())
+            if isinstance(original_tail, CloseLC) and not isinstance(reversed_tail, MoveLC):
+                reversed_tail = CloseLC(reversed_tail._prev, reversed_tail.to())
+
+            first_move = reversed_tail
+            while first_move._prev is not None:
+                first_move = first_move._prev
+            if result is not None:
+                reversed_tail = reversed_tail.with_far_prev_3(first_move, result)
+            result = reversed_tail
+
+        if result is None:
+            raise RuntimeError("Can not reverse empty path")
+        return PathLC(result)
 
     def split_at(self, T: float):
         _tail = self._tail
@@ -278,6 +316,10 @@ def segment_at_length(
 ) -> tuple[Optional[BaseLC], float, float]:
     assert LEN >= 0
     if cur is not None:
+        # A move-only path (or another zero-length path) has no drawable
+        # segment. Avoid modulo by zero and let point_at_length use the tail.
+        if LEN == 0:
+            return (None, float("nan"), float("nan"))
         if n < 0:
             if clamp:
                 n = 0.0
