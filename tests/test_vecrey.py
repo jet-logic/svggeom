@@ -1,4 +1,4 @@
-"""Review tests for the `vecrey` package.
+"""Review tests for the `svggeom` package.
 Layout
 ------
 * ``TestVectorRegressions`` / ``TestRayRegressions``
@@ -22,8 +22,8 @@ for _p in (_here, _here.parent):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from vecrey.ray import Ray, VecRay
-from vecrey.vector import Vector, vec
+from svggeom.ray import Ray, VecRay
+from svggeom.vector import Vector, vec
 
 
 class VecTestCase(unittest.TestCase):
@@ -127,10 +127,10 @@ class TestRayBugs(VecTestCase):
 def load_tests(loader, tests, ignore):
     """Also run the docstring examples of the package modules."""
     import doctest
-    import vecrey.ray
-    import vecrey.vector
+    import svggeom.ray
+    import svggeom.vector
 
-    for module in (vecrey.vector, vecrey.ray):
+    for module in (svggeom.vector, svggeom.ray):
         tests.addTests(doctest.DocTestSuite(module))
     return tests
 
