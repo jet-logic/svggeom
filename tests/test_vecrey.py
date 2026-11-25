@@ -16,11 +16,11 @@ import unittest
 from math import inf, nan, pi, tau
 from pathlib import Path
 
-# Allow running from the repo root or from a tests/ subfolder.
-_here = Path(__file__).resolve().parent
-for _p in (_here, _here.parent):
-    if str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
+# # Allow running from the repo root or from a tests/ subfolder.
+# _here = Path(__file__).resolve().parent
+# for _p in (_here, _here.parent):
+#     if str(_p) not in sys.path:
+#         sys.path.insert(0, str(_p))
 
 from svggeom.ray import Ray, VecRay
 from svggeom.vector import Vector, vec
