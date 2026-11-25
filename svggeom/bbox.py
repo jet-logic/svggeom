@@ -1,21 +1,21 @@
 from typing import Generator, Optional, Sequence, Tuple, Union, overload
 from math import isfinite
 
-BoundingIntervalArgs = Union[
-    "BoundingInterval", Tuple[float, float], float
+IntervalArgs = Union[
+    "Interval", Tuple[float, float], float
 ]  # pylint: disable=invalid-name
 
 
-class BoundingInterval(tuple[float, float]):
+class Interval(tuple[float, float]):
     """A pair of numbers that represent the minimum and maximum values."""
 
     # We use __new__ instead of __init__ because tuples are immutable
     # and must be initialized at creation time.
     def __new__(
         cls,
-        x: Union[Optional["BoundingInterval"], Tuple[float, float], float] = None,
+        x: Union[Optional["Interval"], Tuple[float, float], float] = None,
         y: Optional[float] = None,
-    ) -> "BoundingInterval":
+    ) -> "Interval":
         if y is not None:
             if isinstance(x, (int, float)) and isinstance(y, (int, float)):
                 # FIX: Apply min() and max() to ensure correct ordering
@@ -30,7 +30,7 @@ class BoundingInterval(tuple[float, float]):
             if value is None:
                 # identity for addition, zero for intersection
                 min_val, max_val = float("+inf"), float("-inf")
-            elif isinstance(value, BoundingInterval):
+            elif isinstance(value, Interval):
                 min_val, max_val = value.minimum, value.maximum
             elif isinstance(value, (tuple, list)) and len(value) == 2:
                 min_val, max_val = min(value), max(value)
@@ -57,7 +57,7 @@ class BoundingInterval(tuple[float, float]):
         return isfinite(self.minimum) and isfinite(self.maximum)
 
     def __neg__(self):
-        return BoundingInterval((-1 * self.maximum, -1 * self.minimum))
+        return Interval((-1 * self.maximum, -1 * self.minimum))
 
     # --- Arithmetic Operators (Immutable) ---
     # Note: __iadd__, __iand__, and __imul__ are intentionally omitted.
@@ -67,51 +67,51 @@ class BoundingInterval(tuple[float, float]):
     def __add__(self, other):
         """Calculate the bounding interval that covers both given bounding intervals"""
         if other is None:
-            return BoundingInterval(self)
-        other = BoundingInterval(other)
-        return BoundingInterval(
+            return Interval(self)
+        other = Interval(other)
+        return Interval(
             (min(self.minimum, other.minimum), max(self.maximum, other.maximum))
         )
 
     def __radd__(self, other):
         if other is None:
-            return BoundingInterval(self)
+            return Interval(self)
         return self + other
 
-    def __and__(self, other: "BoundingInterval") -> "BoundingInterval":
+    def __and__(self, other: "Interval") -> "Interval":
         """Calculate the bounding interval where both given bounding intervals overlap"""
         if other is None:
-            return BoundingInterval(self)
-        other = BoundingInterval(other)
+            return Interval(self)
+        other = Interval(other)
         min_val = max(self.minimum, other.minimum)
         max_val = min(self.maximum, other.maximum)
         if min_val > max_val:
             min_val, max_val = float("+inf"), float("-inf")
-        return BoundingInterval((min_val, max_val))
+        return Interval((min_val, max_val))
 
     def __rand__(self, other):
         if other is None:
-            return BoundingInterval(self)
+            return Interval(self)
         return self & other
 
-    def __mul__(self, other: float) -> "BoundingInterval":
+    def __mul__(self, other) -> "Interval":
         if other is None:
-            return BoundingInterval(self)
-        return BoundingInterval((self.minimum * other, self.maximum * other))
+            return Interval(self)
+        return Interval((self.minimum * other, self.maximum * other))
 
     def __iter__(self) -> Generator[float, None, None]:
         yield self.minimum
         yield self.maximum
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, BoundingInterval):
+        if isinstance(other, Interval):
             return super().__eq__(other)
         try:
-            return super().__eq__(BoundingInterval(other))
+            return super().__eq__(Interval(other))
         except ValueError:
             return False
 
-    def __contains__(self, value: float) -> bool:
+    def __contains__(self, value) -> bool:
         return self.minimum <= value <= self.maximum
 
     def __repr__(self) -> str:
@@ -125,7 +125,7 @@ class BoundingInterval(tuple[float, float]):
     def size(self) -> float:
         return self.maximum - self.minimum
 
-    def equals(self, p: "BoundingInterval", epsilon=1e-12):
+    def equals(self, p: "Interval", epsilon=1e-12):
         if not p:
             return False
         elif p is self:
@@ -145,8 +145,8 @@ class BoundingBox:  # pylint: disable=too-few-public-methods
     BoundingBox((x1, x2), (y1, y2))
     """
 
-    x: BoundingInterval
-    y: BoundingInterval
+    x: Interval
+    y: Interval
 
     @property
     def width(self):
@@ -207,7 +207,7 @@ class BoundingBox:  # pylint: disable=too-few-public-methods
 
     @overload
     def __init__(self, x, y):
-        # type: (BoundingIntervalArgs, BoundingIntervalArgs) -> None
+        # type: (IntervalArgs, IntervalArgs) -> None
         pass
 
     def __init__(self, x=None, y=None):  # type: ignore
@@ -221,14 +221,12 @@ class BoundingBox:  # pylint: disable=too-few-public-methods
                 raise ValueError(
                     f"Not a number for scaling: {str(x)} ({type(x).__name__})"
                 )
-        self.x = BoundingInterval(x)
-        self.y = BoundingInterval(y)
+        self.x = Interval(x)
+        self.y = Interval(y)
 
     @staticmethod
-    def new_xywh(x: float, y: float, width: float, height: float) -> "BoundingBox":
-        """Create a bounding box using x, y, width and height
-
-        .. versionadded:: 1.2"""
+    def from_rect(x: float, y: float, width: float, height: float) -> "BoundingBox":
+        """Create a bounding box using x, y, width and height"""
         return BoundingBox((x, x + width), (y, y + height))
 
     def __bool__(self):
@@ -269,7 +267,7 @@ class BoundingBox:  # pylint: disable=too-few-public-methods
         self.x = self.x & other.x
         self.y = self.y & other.y
         if not self.x or not self.y:
-            self.x, self.y = BoundingInterval(), BoundingInterval()
+            self.x, self.y = Interval(), Interval()
         return self
 
     def __rand__(self, other):
@@ -294,7 +292,7 @@ class BoundingBox:  # pylint: disable=too-few-public-methods
             return tuple(self) == tuple(other)
         return False
 
-    def __iter__(self) -> Generator["BoundingInterval", None, None]:
+    def __iter__(self) -> Generator["Interval", None, None]:
         yield self.x
         yield self.y
 

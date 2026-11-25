@@ -92,7 +92,7 @@ class TestVectorPassingBehavior(unittest.TestCase):
 
     def test_polar_3d_mode_is_3d(self):
         # 3-D mode (theta provided) is correct today.
-        v = Vector.polar(5, 0, pi / 2)
+        v = Vector.from_spherical(5, 0, pi / 2)
         self.assertEqual(len(v), 3)
         self.assertAlmostEqual(v[0], 5)
         self.assertAlmostEqual(v[1], 0)
@@ -113,7 +113,7 @@ class TestVectorConfirmedBugs(unittest.TestCase):
     # @unittest.expectedFailure
     def test_polar_2d_returns_2d(self):
         """Bug 1: polar() with theta=None returns a 3-D vector."""
-        v = Vector.polar(5, pi / 2)
+        v = Vector.from_polar(5, pi / 2)
         self.assertEqual(len(v), 2)
         self.assertAlmostEqual(v[0], 0, places=9)
         self.assertAlmostEqual(v[1], 5)
@@ -121,7 +121,7 @@ class TestVectorConfirmedBugs(unittest.TestCase):
     # @unittest.expectedFailure
     def test_polar_2d_zero_radius_returns_2d(self):
         """Bug 1b: polar(0) falls through to the 3-D zero vector."""
-        v = Vector.polar(0)
+        v = Vector.from_polar(0)
         self.assertEqual(len(v), 2)
 
     # @unittest.expectedFailure

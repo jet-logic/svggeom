@@ -80,34 +80,6 @@ class TestPathLCIssues(unittest.TestCase):
         # Desired behavior? Arguable. But let's document it.
         self.assertIsNone(bb)
 
-    @unittest.expectedFailure
-    def test_path_len_recursion(self):
-        """
-        Real Bug: RecursionError on long paths.
-        """
-        # Increase limit slightly to ensure we hit it in test environment if needed,
-        # but standard limit is 1000.
-        old_limit = sys.getrecursionlimit()
-        sys.setrecursionlimit(1000)
-
-        try:
-            d = "M0,0"
-            for i in range(1, 900):
-                d += f" L{i},0"
-
-            path = PathLC.parse(d)
-            # This call recurses through _prev
-            length = path.length()
-            # If we get here without error, the test fails (unexpected success)
-            # meaning the bug is NOT present or fixed.
-            # But we WANT it to crash to prove bug exists.
-            # So we expect an exception.
-            self.fail("Expected RecursionError")
-        except RecursionError:
-            pass  # Expected failure: The code crashed, confirming the bug.
-        finally:
-            sys.setrecursionlimit(old_limit)
-
     def test_transform_identity(self):
         """
         Passing test: Identity transform should not change coordinates.

@@ -183,22 +183,22 @@ class Vector(tuple[float, ...]):
         )
 
     @staticmethod
-    def polar(radius: float = 1, phi: float = 0, theta: float | None = None):
-        """Build a vector from polar or spherical coordinates."""
-        if theta is None:
-            # 2-D polar coordinates: return a 2-D vector.
-            if radius:
-                return Vector(radius * cos(phi), radius * sin(phi))
-            return Vector(0, 0)
-        else:
-            # http://www.kwon3d.com/theory/crdsys/polar.html
-            sin_t = sin(theta)
-            if radius:
-                return Vector(
-                    radius * cos(phi) * sin_t,
-                    radius * sin(phi) * sin_t,
-                    radius * cos(theta),
-                )
+    def from_polar(radius: float = 1, phi: float = 0):
+        # 2-D polar coordinates: return a 2-D vector.
+        if radius:
+            return Vector(radius * cos(phi), radius * sin(phi))
+        return Vector(0, 0)
+
+    @staticmethod
+    def from_spherical(radius: float = 1, phi: float = 0, theta: float = 0):
+        # http://www.kwon3d.com/theory/crdsys/polar.html
+        sin_t = sin(theta)
+        if radius:
+            return Vector(
+                radius * cos(phi) * sin_t,
+                radius * sin(phi) * sin_t,
+                radius * cos(theta),
+            )
         return Vector(0, 0, 0)
 
     def closest_point_on_segment(self, a, b):

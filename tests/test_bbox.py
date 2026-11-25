@@ -1,88 +1,88 @@
 import unittest
 import math
-from svggeom.bbox import BoundingInterval, BoundingBox
+from svggeom.bbox import Interval, BoundingBox
 
 
 class TestBoundingInterval(unittest.TestCase):
 
     def test_init_empty(self):
-        bi = BoundingInterval()
+        bi = Interval()
         self.assertFalse(bi)
         self.assertEqual(bi.minimum, float("+inf"))
         self.assertEqual(bi.maximum, float("-inf"))
 
     def test_init_single_value(self):
-        bi = BoundingInterval(5.0)
+        bi = Interval(5.0)
         self.assertTrue(bi)
         self.assertEqual(bi.minimum, 5.0)
         self.assertEqual(bi.maximum, 5.0)
 
     def test_init_two_values(self):
-        bi = BoundingInterval(2.0, 8.0)
+        bi = Interval(2.0, 8.0)
         self.assertEqual(bi.minimum, 2.0)
         self.assertEqual(bi.maximum, 8.0)
 
         # Test auto-sorting if passed in wrong order
-        bi_rev = BoundingInterval(10.0, 1.0)
+        bi_rev = Interval(10.0, 1.0)
         self.assertEqual(bi_rev.minimum, 1.0)
         self.assertEqual(bi_rev.maximum, 10.0)
 
     def test_init_tuple(self):
-        bi = BoundingInterval((3.0, 7.0))
+        bi = Interval((3.0, 7.0))
         self.assertEqual(bi.minimum, 3.0)
         self.assertEqual(bi.maximum, 7.0)
 
     def test_init_copy(self):
-        bi1 = BoundingInterval(1.0, 5.0)
-        bi2 = BoundingInterval(bi1)
+        bi1 = Interval(1.0, 5.0)
+        bi2 = Interval(bi1)
         self.assertEqual(bi1, bi2)
 
     def test_bool(self):
-        self.assertFalse(BoundingInterval())
-        self.assertTrue(BoundingInterval(0, 10))
+        self.assertFalse(Interval())
+        self.assertTrue(Interval(0, 10))
         # NaN or Inf should evaluate to False
-        self.assertFalse(BoundingInterval(float("nan"), 10))
+        self.assertFalse(Interval(float("nan"), 10))
 
     def test_neg(self):
-        bi = BoundingInterval(2.0, 5.0)
+        bi = Interval(2.0, 5.0)
         neg_bi = -bi
         self.assertEqual(neg_bi.minimum, -5.0)
         self.assertEqual(neg_bi.maximum, -2.0)
 
     def test_add_union(self):
-        bi1 = BoundingInterval(1.0, 5.0)
-        bi2 = BoundingInterval(3.0, 8.0)
+        bi1 = Interval(1.0, 5.0)
+        bi2 = Interval(3.0, 8.0)
         union = bi1 + bi2
         self.assertEqual(union.minimum, 1.0)
         self.assertEqual(union.maximum, 8.0)
 
     def test_iadd_union(self):
-        bi1 = BoundingInterval(1.0, 5.0)
-        bi2 = BoundingInterval(3.0, 8.0)
+        bi1 = Interval(1.0, 5.0)
+        bi2 = Interval(3.0, 8.0)
         bi1 += bi2
         self.assertEqual(bi1.minimum, 1.0)
         self.assertEqual(bi1.maximum, 8.0)
 
     def test_and_intersection(self):
-        bi1 = BoundingInterval(1.0, 5.0)
-        bi2 = BoundingInterval(3.0, 8.0)
+        bi1 = Interval(1.0, 5.0)
+        bi2 = Interval(3.0, 8.0)
         inter = bi1 & bi2
         self.assertEqual(inter.minimum, 3.0)
         self.assertEqual(inter.maximum, 5.0)
 
         # Non-overlapping intervals should result in an empty/invalid interval
-        bi3 = BoundingInterval(6.0, 10.0)
+        bi3 = Interval(6.0, 10.0)
         inter_none = bi1 & bi3
         self.assertFalse(inter_none)
 
     def test_iand_intersection(self):
-        bi1 = BoundingInterval(1.0, 5.0)
-        bi1 &= BoundingInterval(3.0, 8.0)
+        bi1 = Interval(1.0, 5.0)
+        bi1 &= Interval(3.0, 8.0)
         self.assertEqual(bi1.minimum, 3.0)
         self.assertEqual(bi1.maximum, 5.0)
 
     def test_mul_scale(self):
-        bi = BoundingInterval(2.0, 4.0)
+        bi = Interval(2.0, 4.0)
         scaled = bi * 2.0
         self.assertEqual(scaled.minimum, 4.0)
         self.assertEqual(scaled.maximum, 8.0)
@@ -93,27 +93,27 @@ class TestBoundingInterval(unittest.TestCase):
         self.assertEqual(neg_scaled.maximum, -2.0)
 
     def test_imul_scale(self):
-        bi = BoundingInterval(2.0, 4.0)
+        bi = Interval(2.0, 4.0)
         bi *= 0.5
         self.assertEqual(bi.minimum, 1.0)
         self.assertEqual(bi.maximum, 2.0)
 
     def test_contains(self):
-        bi = BoundingInterval(0.0, 10.0)
+        bi = Interval(0.0, 10.0)
         self.assertIn(5.0, bi)
         self.assertIn(0.0, bi)
         self.assertNotIn(11.0, bi)
 
     def test_properties(self):
-        bi = BoundingInterval(2.0, 8.0)
+        bi = Interval(2.0, 8.0)
         self.assertEqual(bi.center, 5.0)
         self.assertEqual(bi.size, 6.0)
 
     def test_equals_epsilon(self):
-        bi1 = BoundingInterval(1.0, 5.0)
-        bi2 = BoundingInterval(1.0 + 1e-13, 5.0 - 1e-13)
+        bi1 = Interval(1.0, 5.0)
+        bi2 = Interval(1.0 + 1e-13, 5.0 - 1e-13)
         self.assertTrue(bi1.equals(bi2))
-        self.assertFalse(bi1.equals(BoundingInterval(1.1, 5.0)))
+        self.assertFalse(bi1.equals(Interval(1.1, 5.0)))
 
 
 class TestBoundingBox(unittest.TestCase):
@@ -131,7 +131,7 @@ class TestBoundingBox(unittest.TestCase):
         self.assertEqual(bb.max_y, 15)
 
     def test_new_xywh(self):
-        bb = BoundingBox.new_xywh(10, 20, 100, 50)
+        bb = BoundingBox.from_rect(10, 20, 100, 50)
         self.assertEqual(bb.left, 10)
         self.assertEqual(bb.top, 20)  # Note: top is y.minimum
         self.assertEqual(bb.width, 100)
@@ -222,7 +222,7 @@ class TestBoundingBox(unittest.TestCase):
         self.assertAlmostEqual(t_bb.max_y, 10)
 
     def test_dump_rect(self):
-        bb = BoundingBox.new_xywh(10, 20, 100, 50)
+        bb = BoundingBox.from_rect(10, 20, 100, 50)
         x, y, w, h = bb.dump_rect()
         self.assertEqual(x, 10)
         self.assertEqual(y, 20)
