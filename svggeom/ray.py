@@ -12,6 +12,9 @@ class RayIntersection(Vector):
     distances unless the corresponding direction is unit length.
     """
 
+    _t_self: float
+    _t_other: float
+
     def __new__(cls, point: Sequence[float], t_self: float, t_other: float):
         result = super().__new__(cls, *point)
         object.__setattr__(result, "_t_self", float(t_self))

@@ -4,7 +4,7 @@ All coordinates are plain `Tuple[float, float]`; boxes are `((xmin, xmax), (ymin
 """
 
 from typing import Sequence, Tuple
-from math import fabs, sqrt, hypot
+from math import sqrt, hypot
 
 Pt = Sequence[float]
 Box = Tuple[Pt, Pt]
@@ -12,7 +12,6 @@ Box = Tuple[Pt, Pt]
 
 def cubic_extrema(py0: float, py1: float, py2: float, py3: float) -> Pt:
     """Returns the extreme value, given a set of bezier coordinates."""
-    atol = 1e-9
     cmin, cmax = min(py0, py3), max(py0, py3)
     pd1 = py1 - py0
     pd2 = py2 - py1
@@ -29,12 +28,13 @@ def cubic_extrema(py0: float, py1: float, py2: float, py3: float) -> Pt:
             return min(cmin, pyx), max(cmax, pyx)
         return cmin, cmax
 
-    if fabs(pd1 - 2 * pd2 + pd3) > atol:
+    denominator = pd1 - 2 * pd2 + pd3
+    if denominator != 0:
         if pd2 * pd2 > pd1 * pd3:
             pds = sqrt(pd2 * pd2 - pd1 * pd3)
-            cmin, cmax = _is_bigger((pd1 - pd2 + pds) / (pd1 - 2 * pd2 + pd3))
-            cmin, cmax = _is_bigger((pd1 - pd2 - pds) / (pd1 - 2 * pd2 + pd3))
-    elif fabs(pd2 - pd1) > atol:
+            cmin, cmax = _is_bigger((pd1 - pd2 + pds) / denominator)
+            cmin, cmax = _is_bigger((pd1 - pd2 - pds) / denominator)
+    elif pd2 != pd1:
         cmin, cmax = _is_bigger(-pd1 / (2 * (pd2 - pd1)))
 
     return cmin, cmax

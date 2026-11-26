@@ -785,6 +785,9 @@ class ArcLC(BaseLC):
         to: Sequence[float],
     ):
         super().__init__(prev, to)
+        # Retain the flags for path serialization as well as for arc conversion.
+        self.big_arc = bool(big_arc)
+        self.sweep = bool(sweep)
         x1, y1 = self._from()  # needs prev
         x2, y2 = self._to
 
@@ -795,8 +798,6 @@ class ArcLC(BaseLC):
             self.rx = abs(rx)
             self.ry = abs(ry)
             self._phi = PHI
-            self.big_arc = bool(big_arc)
-            self.sweep = bool(sweep)
             self.phi = PHI
             self.sin_phi = 0.0
             self.cos_phi = 1.0
@@ -839,22 +840,68 @@ class ArcLC(BaseLC):
         return cur
 
     def bbox(self):
-        cur: BaseLC | None = self.as_curve()
-        b = None
-        while cur:
-            cb = cur.bbox()
-            if cb:
-                if b is None:
-                    b = cb
-                else:
-                    (xmin, xmax), (ymin, ymax) = cb
-                    (bxmin, bxmax), (bymin, bymax) = b
-                    b = (
-                        (min(bxmin, xmin), max(bxmax, xmax)),
-                        (min(bymin, ymin), max(bymax, ymax)),
-                    )
-            cur = cur._prev
-        return b
+        """Return the tight axis-aligned bounds of this elliptical arc.
+
+        The cubic conversion in :meth:`as_curve` is an approximation, which
+        is useful for drawing and interpolation but can slightly under- or
+        overshoot the true arc extrema.  An SVG ellipse's extrema occur at
+        four analytically known parameter angles; include those that lie on
+        this arc, together with both endpoints.
+        """
+        start = self._from()
+        end = self._to
+        if _close(start, end):
+            return None
+
+        rx, ry = self.rx, self.ry
+        cp, sp = self.cos_phi, self.sin_phi
+        theta0, delta = self.rtheta, self.rdelta
+
+        def on_arc(theta: float) -> bool:
+            if delta >= 0:
+                distance = (theta - theta0) % tau
+                return distance <= delta + 1e-12
+            distance = (theta0 - theta) % tau
+            return distance <= -delta + 1e-12
+
+        def point(theta: float):
+            ct, st = cos(theta), sin(theta)
+            return (
+                self.cx + rx * cp * ct - ry * sp * st,
+                self.cy + rx * sp * ct + ry * cp * st,
+            )
+
+        # For A*cos(theta) + B*sin(theta), the maximum is at atan2(B, A)
+        # and the minimum is half a turn later.
+        x_extreme = atan2(-ry * sp, rx * cp)
+        y_extreme = atan2(ry * cp, rx * sp)
+        candidates = [start, end]
+        for theta in (x_extreme, x_extreme + pi, y_extreme, y_extreme + pi):
+            if on_arc(theta):
+                candidates.append(point(theta))
+
+        xs = [p[0] for p in candidates]
+        ys = [p[1] for p in candidates]
+        xmin, xmax = min(xs), max(xs)
+        ymin, ymax = min(ys), max(ys)
+
+        # Trigonometric evaluation can put an endpoint extremum a few ulps
+        # outside the exact endpoint coordinate (e.g. cos(pi / 2)).  Snap
+        # only those tiny excursions back to the endpoint values.
+        scale = max(1.0, rx, ry, *(abs(v) for p in (start, end) for v in p))
+        epsilon = 1e-12 * scale
+        endpoint_xmin, endpoint_xmax = sorted((start[0], end[0]))
+        endpoint_ymin, endpoint_ymax = sorted((start[1], end[1]))
+        if endpoint_xmin - epsilon <= xmin < endpoint_xmin:
+            xmin = endpoint_xmin
+        if endpoint_xmax < xmax <= endpoint_xmax + epsilon:
+            xmax = endpoint_xmax
+        if endpoint_ymin - epsilon <= ymin < endpoint_ymin:
+            ymin = endpoint_ymin
+        if endpoint_ymax < ymax <= endpoint_ymax + epsilon:
+            ymax = endpoint_ymax
+
+        return ((xmin, xmax), (ymin, ymax))
 
     def transform(self, m: Sequence[float]):
         # pylint: disable=invalid-name, too-many-locals

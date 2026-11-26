@@ -1,10 +1,68 @@
+import re
 from typing import Any, Optional, Sequence
 from weakref import WeakKeyDictionary
+
+# from ...numeric import to_float
 from .command import BaseLC, CloseLC, MoveLC
 
 
 class PathLC:
     """Path linked command"""
+
+    _NUMBER = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
+    _SEPARATOR = re.compile(r"(?:\s*,\s*|\s+)")
+
+    @staticmethod
+    def _points(value: str) -> list[tuple[float, float]]:
+        """Parse an SVG ``points`` attribute into coordinate pairs."""
+        matches = list(PathLC._NUMBER.finditer(value))
+        if not matches:
+            if value.strip():
+                raise ValueError(f"Invalid SVG points value: {value!r}")
+            return []
+
+        values = []
+        if value[: matches[0].start()].strip():
+            raise ValueError(f"Invalid SVG points value: {value!r}")
+
+        for index, match in enumerate(matches):
+            if index:
+                gap = value[matches[index - 1].end() : match.start()]
+                # SVG permits a sign to separate adjacent numbers (e.g. ``10-5``).
+                if gap and not PathLC._SEPARATOR.fullmatch(gap):
+                    raise ValueError(f"Invalid SVG points value: {value!r}")
+                if not gap and match.group()[0] not in "+-":
+                    raise ValueError(f"Invalid SVG points value: {value!r}")
+            number = float(match.group())
+            values.append(0.0 if number == 0 else number)
+
+        if value[matches[-1].end() :].strip():
+            raise ValueError(f"Invalid SVG points value: {value!r}")
+        if len(values) % 2:
+            raise ValueError(
+                f"SVG points needs coordinate pairs, got {len(values)} values"
+            )
+
+        return list(zip(values[::2], values[1::2]))
+
+    @classmethod
+    def _path_from_points(cls, value: str, *, close: bool = False) -> "PathLC | None":
+        """Build a path from an SVG ``points`` attribute, or return ``None``."""
+        points = cls._points(value)
+        if not points:
+            return None
+        path = cls.at(points[0])
+        for point in points[1:]:
+            path.line_to(point)
+        if close:
+            path.close()
+        return path
+
+    # @classmethod
+    # def _describe_points(cls, value: str, *, close: bool = False) -> str:
+    #     """Describe an SVG ``points`` attribute as path data."""
+    #     path = cls._path_from_points(value, close=close)
+    #     return "" if path is None else path.describe()
 
     def __init__(self, tail: BaseLC):
         assert isinstance(tail, BaseLC)
@@ -60,6 +118,19 @@ class PathLC:
 
     def line_to(self, p: Sequence[float]):
         self._tail = self._tail.line_to(p)
+        return self
+
+    def arc_to(
+        self,
+        rx: float,
+        ry: float,
+        phi: float,
+        big_arc: bool | float,
+        sweep: bool | float,
+        p: Sequence[float],
+    ):
+        """Append an SVG elliptical arc ending at ``p``."""
+        self._tail = self._tail.arc_to(rx, ry, phi, big_arc, sweep, p)
         return self
 
     def close(self):

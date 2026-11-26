@@ -4,7 +4,7 @@ Self-contained: no `..vector` / `..bbox` imports. All coordinates are
 plain `Tuple[float, float]`; boxes are `((xmin, xmax), (ymin, ymax))`.
 """
 
-from math import fabs, hypot, log, sqrt
+from math import hypot, log, sqrt
 from typing import Sequence, Tuple
 
 Pt = Sequence[float]
@@ -13,7 +13,6 @@ Box = Tuple[Pt, Pt]
 
 def quadratic_extrema(py0: float, py1: float, py2: float) -> Pt:
     """Returns the extreme value, given a set of quadratic bezier coordinates."""
-    atol = 1e-9
     cmin, cmax = min(py0, py2), max(py0, py2)
 
     def _is_bigger(point):
@@ -26,8 +25,9 @@ def quadratic_extrema(py0: float, py1: float, py2: float) -> Pt:
             return min(cmin, pyx), max(cmax, pyx)
         return cmin, cmax
 
-    if fabs(py0 + py2 - 2 * py1) > atol:
-        cmin, cmax = _is_bigger((py0 - py1) / (py0 + py2 - 2 * py1))
+    denominator = py0 + py2 - 2 * py1
+    if denominator != 0:
+        cmin, cmax = _is_bigger((py0 - py1) / denominator)
 
     return cmin, cmax
 
