@@ -108,6 +108,12 @@ class TestBezierPassingBehavior(unittest.TestCase):
         self.assertAlmostEqual(b[1][1][0], 2 / 3, places=9)
         self.assertAlmostEqual(b[1][1][1], -2 / 3, places=9)
 
+    def test_single_vertex_bezier_has_point_bbox(self):
+        """A Bezier containing only a move point has a degenerate point bbox."""
+        b = Bezier()
+        b.move_to((4, 7))
+        self.assertEqual(b.bounding_box(), ((4, 4), (7, 7)))
+
     def test_bounding_box_straight_line(self):
         # Straight lines have zero tangents, so + and - agree and bbox is
         # correct even in the currently-buggy implementation.

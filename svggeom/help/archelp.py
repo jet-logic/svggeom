@@ -1,4 +1,4 @@
-from math import ceil, fabs, pi, sin, cos, acos, sqrt, tan
+from math import ceil, fabs, pi, sin, cos, acos, sqrt, tan, radians
 
 
 def approximate_unit_arc(theta1: float, delta_theta: float):
@@ -116,6 +116,8 @@ def arc_params(
     x2: float,
     y2: float,
 ):
+    # SVG path arc rotation (x-axis-rotation) is expressed in degrees.
+    phi = radians(phi)
     cosP, sinP = cossin(phi)
 
     x1_ = (cosP * (x1 - x2) + sinP * (y1 - y2)) / 2

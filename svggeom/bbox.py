@@ -86,7 +86,7 @@ class Interval(tuple[float, float]):
         min_val = max(self.minimum, other.minimum)
         max_val = min(self.maximum, other.maximum)
         if min_val > max_val:
-            min_val, max_val = float("+inf"), float("-inf")
+            return Interval()
         return Interval((min_val, max_val))
 
     def __rand__(self, other):
@@ -330,7 +330,8 @@ class BoundingBox:  # pylint: disable=too-few-public-methods
         """Enlarges / shrinks a bounding box by a constant value. If only delta_x
         is given, each side is moved by the same amount; if delta_y is given,
         different deltas are applied to horizontal and vertical intervals."""
-        delta_y = delta_y or delta_x
+        if delta_y is None:
+            delta_y = delta_x
         return BoundingBox(
             (self.x.minimum - delta_x, self.x.maximum + delta_x),
             (self.y.minimum - delta_y, self.y.maximum + delta_y),

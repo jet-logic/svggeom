@@ -83,6 +83,14 @@ class TestPassingPathLCBehavior(unittest.TestCase):
         self.assertAlmostEqual(b[1][1], 110)
 
 
+    def test_svg_arc_rotation_uses_degrees(self):
+        """SVG A-command rotation is in degrees, not radians."""
+        quarter_turn = PathLC.parse("M0,0 A10,5 90 0 1 20,0").point_at(0.5)
+        equivalent_turn = PathLC.parse("M0,0 A10,5 450 0 1 20,0").point_at(0.5)
+        self.assertAlmostEqual(quarter_turn[0], equivalent_turn[0], places=6)
+        self.assertAlmostEqual(quarter_turn[1], equivalent_turn[1], places=6)
+
+
 class TestPathLCConfirmedBugs(unittest.TestCase):
     """@expectedFailure: each test asserts the *desired* behaviour."""
 

@@ -36,13 +36,13 @@ class TestWorkingBehavior(unittest.TestCase):
 
 
 class TestConfirmedBugs(unittest.TestCase):
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_resize_explicit_zero_vertical_delta(self):
         """resize(delta_x, 0) should leave the vertical bounds unchanged."""
         box = BoundingBox.from_rect(0, 0, 10, 10).resize(2, 0)
         self.assertEqual(box.dump_rect(), (-2, 0, 14, 10))
 
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_single_vertex_bezier_has_point_bbox(self):
         """A nonempty one-vertex Bezier has a degenerate point bounding box."""
         curve = Bezier()

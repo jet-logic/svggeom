@@ -3,6 +3,41 @@ from math import sqrt, tau
 from .vector import Vector, vec
 
 
+class RayIntersection(Vector):
+    """A ray-pair intersection point with parameters on both rays.
+
+    It behaves like a :class:`Vector`; ``t_self`` and ``t_other`` locate the
+    point in ``self.pos + t_self * self.dir`` and
+    ``other.pos + t_other * other.dir`` respectively. Parameters are not
+    distances unless the corresponding direction is unit length.
+    """
+
+    def __new__(cls, point: Sequence[float], t_self: float, t_other: float):
+        result = super().__new__(cls, *point)
+        object.__setattr__(result, "_t_self", float(t_self))
+        object.__setattr__(result, "_t_other", float(t_other))
+        return result
+
+    def __setattr__(self, name, value):
+        raise AttributeError(f"{type(self).__name__} is immutable")
+
+    @property
+    def t_self(self) -> float:
+        return self._t_self
+
+    @property
+    def t_other(self) -> float:
+        return self._t_other
+
+    @property
+    def is_forward(self) -> bool:
+        """Whether the intersection is at or ahead of both ray origins."""
+        return self.t_self >= 0 and self.t_other >= 0
+
+    def __reduce__(self):
+        return (type(self), (Vector(*self), self.t_self, self.t_other))
+
+
 class VecRay:
     """A ray: an origin ``pos`` and a direction ``dir``"""
 
@@ -129,13 +164,29 @@ class VecRay:
             return None
         return Vector((e1 * dx[1] - dx[0] * e2) / d, (e1 * dy[1] - dy[0] * e2) / d)
 
-    def intersection_with_ray(self, r: "VecRay") -> Optional[Vector]:
-        """Intersection with another ray.
+    def intersection_with_ray(self, r: "VecRay") -> Optional[RayIntersection]:
+        """Intersection of the supporting lines of this ray and ``r``.
 
-        Returns ``None`` when the rays are parallel or coincident. Like
-        :meth:`intersection_with_line`, both rays are currently treated as
-        infinite lines, so the result can lie behind either origin."""
-        return r.intersection_with_line(self.pos, self.pos + self.dir)
+        Returns ``None`` when the lines are parallel or coincident. Otherwise
+        returns a :class:`RayIntersection`, which is also a :class:`Vector`.
+        Its ``t_self`` and ``t_other`` parameters describe the intersection
+        relative to each ray; ``is_forward`` is true only when it lies at or
+        ahead of both origins. This reports behind-origin intersections too,
+        rather than discarding their useful geometric information. 2-D only.
+        """
+        if len(self.pos) != 2 or len(r.pos) != 2:
+            raise ValueError("ray intersection is 2-D only")
+
+        delta = r.pos - self.pos
+        cross = lambda a, b: a[0] * b[1] - a[1] * b[0]
+        denominator = cross(self.dir, r.dir)
+        if denominator == 0:
+            return None
+
+        t_self = cross(delta, r.dir) / denominator
+        t_other = cross(delta, self.dir) / denominator
+        point = self.pos + self.dir * t_self
+        return RayIntersection(point, t_self, t_other)
 
     def closest_point_to(self, p: Sequence[float]):
         """Closest point on this ray (a half-line) to the point ``p``.
@@ -182,6 +233,37 @@ class Ray(VecRay):
         """A new ray with its origin at ``p``."""
         return self.new_pos(vec(p))
 
+    def pointing(self, rad: float | Sequence[float]):
+        """A new ray with its direction *set* to ``rad``.
+        Args:
+            rad: an angle in radians, counter-clockwise from +x, which gives a
+                unit-length direction (the old direction's length is
+                discarded); or a vector, which is used as given.
+        """
+        if isinstance(rad, (int, float)):
+            return self.new_dir(Vector.from_polar(1, rad))
+        else:
+            return self.new_dir(vec(rad))
+
+    def oriented(self, deg: float):
+        """Like :meth:`pointing`, with the angle given in degrees"""
+        return self.pointing((deg * tau) / 360)
+
+    def shifted(
+        self,
+        pos_delta: Sequence[float],
+        dir_delta: Sequence[float],
+    ):
+        """A new ray with its origin and direction offset by the given vectors.
+
+        The original ray is unchanged. The direction must remain non-zero.
+        """
+        return type(self)(self._pos + vec(pos_delta), self._dir + vec(dir_delta))
+
+    def moved_by(self, p: Sequence[float]):
+        """A new ray with its origin offset by ``p``"""
+        return self.new_pos(self._pos + vec(p))
+
     def advanced(self, d: float):
         """A new ray whose origin has moved ``d`` units along the direction.
 
@@ -189,39 +271,7 @@ class Ray(VecRay):
         ``d`` moves backwards."""
         return self.new_pos(self._pos + self._dir.normalized() * d)
 
-    # Turn
-
-    def turn(self, rad: float | Sequence[float]):
-        """A new ray with its direction *set* (not rotated) to ``rad``.
-
-        Despite the name this is an absolute heading, not a relative turn:
-        calling it twice with the same argument gives the same result.
-
-        Args:
-            rad: an angle in radians, counter-clockwise from +x, which gives a
-                unit-length direction (the old direction's length is
-                discarded); or a vector, which is used as given.
-
-        Raises:
-            ValueError: if ``rad`` is the zero vector.
-
-        >>> Ray().turn([0, 1]).dir
-        (0, 1)
-        """
-        if isinstance(rad, (int, float)):
-            return self.new_dir(Vector.polar(1, rad))
-        else:
-            return self.new_dir(vec(rad))
-
-    def turnd(self, deg: float):
-        """Like :meth:`turn`, with the angle given in degrees"""
-        return self.turn((deg * tau) / 360)
-
     def lerp_to(self, p: Sequence[float], t: float):
         """A new ray whose origin is interpolated from here (``t=0``) to ``p``
         (``t=1``). ``t`` outside ``[0, 1]`` extrapolates. The direction is kept"""
         return self.new_pos(self._pos + (vec(p) - self._pos) * t)
-
-    def moved_by(self, p: Sequence[float]):
-        """A new ray with its origin offset by ``p``"""
-        return self.new_pos(self._pos + vec(p))

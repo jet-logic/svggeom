@@ -51,6 +51,9 @@ class Bezier(list[tuple[FF, FF, FF]]):
         """Return ((xmin, xmax), (ymin, ymax)) or None if empty."""
         if not self:
             return None
+        if len(self) == 1:
+            x, y = self[0][0]
+            return ((x, x), (y, y))
 
         xmin = ymin = float("inf")
         xmax = ymax = float("-inf")

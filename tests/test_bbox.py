@@ -98,6 +98,20 @@ class TestBoundingInterval(unittest.TestCase):
         self.assertEqual(bi.minimum, 1.0)
         self.assertEqual(bi.maximum, 2.0)
 
+
+    def test_disjoint_intersection_remains_empty_for_union(self):
+        disjoint = Interval(1.0, 2.0) & Interval(4.0, 5.0)
+        self.assertFalse(disjoint)
+        self.assertEqual(disjoint.minimum, float("+inf"))
+        self.assertEqual(disjoint.maximum, float("-inf"))
+        self.assertEqual(disjoint + Interval(10.0, 20.0), Interval(10.0, 20.0))
+
+    def test_intersection_with_empty_interval_is_empty(self):
+        intersection = Interval() & Interval(1.0, 2.0)
+        self.assertFalse(intersection)
+        self.assertEqual(intersection.minimum, float("+inf"))
+        self.assertEqual(intersection.maximum, float("-inf"))
+
     def test_contains(self):
         bi = Interval(0.0, 10.0)
         self.assertIn(5.0, bi)
@@ -192,6 +206,17 @@ class TestBoundingBox(unittest.TestCase):
         self.assertEqual(resized2.max_x, 22)
         self.assertEqual(resized2.min_y, 7)
         self.assertEqual(resized2.max_y, 23)
+
+
+    def test_resize_explicit_zero_vertical_delta(self):
+        bb = BoundingBox.from_rect(0, 0, 10, 10)
+        resized = bb.resize(2, 0)
+        self.assertEqual(resized.dump_rect(), (-2, 0, 14, 10))
+
+    def test_resize_zero_horizontal_delta_with_vertical_delta(self):
+        bb = BoundingBox.from_rect(0, 0, 10, 10)
+        resized = bb.resize(0, 2)
+        self.assertEqual(resized.dump_rect(), (0, -2, 10, 14))
 
     def test_transform_translate(self):
         bb = BoundingBox((0, 10), (0, 10))
