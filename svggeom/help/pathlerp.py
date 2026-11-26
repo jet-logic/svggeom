@@ -299,7 +299,7 @@ def split_longest(b: Bezier):
     for j, (v_cur, i, o) in enumerate(pts):
         if j > 0:
             v_prev = pts[j - 1][0]
-            lens.append(((vec(v_prev) - vec(v_cur)).abs(), j))
+            lens.append(((vec(v_prev) - vec(v_cur)).length(), j))
     lens.sort()
     j = lens[-1][1]
     v1 = b[j - 1]

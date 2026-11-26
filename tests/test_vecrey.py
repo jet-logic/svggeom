@@ -59,7 +59,7 @@ class TestVectorRegressions(VecTestCase):
         self.assertFalse(Vector(nan, 0).is_close((1, 0)))
 
     def test_abs_and_normalize_no_overflow(self):
-        self.assertTrue(math.isfinite(Vector(1e200, 1e200).abs()))
+        self.assertTrue(math.isfinite(Vector(1e200, 1e200).length()))
         self.assertVecAlmostEqual(Vector(1e200, 0).normalized(), (1, 0))
 
     def test_with_x_pads_empty(self):

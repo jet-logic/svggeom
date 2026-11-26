@@ -19,8 +19,8 @@ class TestVectorPassingBehavior(unittest.TestCase):
     def test_len_and_abs_quad(self):
         v = Vector(3, 4)
         self.assertEqual(len(v), 2)
-        self.assertEqual(v.abs_quad(), 25)
-        self.assertAlmostEqual(v.abs(), 5.0)
+        self.assertEqual(v.length_squared(), 25)
+        self.assertAlmostEqual(v.length(), 5.0)
 
     def test_dot(self):
         self.assertEqual(Vector(1, 2).dot([3, 4]), 11)
@@ -49,7 +49,7 @@ class TestVectorPassingBehavior(unittest.TestCase):
         v = Vector(3, 4).normalized()
         self.assertAlmostEqual(v[0], 0.6)
         self.assertAlmostEqual(v[1], 0.8)
-        self.assertAlmostEqual(v.abs(), 1.0)
+        self.assertAlmostEqual(v.length(), 1.0)
 
     def test_normalize_zero_raises(self):
         with self.assertRaises(ValueError):

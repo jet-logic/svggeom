@@ -111,11 +111,11 @@ class Vector(tuple[float, ...]):
         return self * (1 - t) + vec(other) * t
 
     ##
-    def abs_quad(self):
+    def length_squared(self):
         """Squared length (sum of squared components)"""
         return sum(n * n for n in self)
 
-    def abs(self):
+    def length(self):
         """Euclidean length, computed with ``math.hypot`` so it cannot overflow
         or underflow in the intermediate squares."""
         return hypot(*self)  # avoids overflow/underflow of sum-of-squares
@@ -130,7 +130,7 @@ class Vector(tuple[float, ...]):
 
     def normalized(self, epsilon=1e-12):
         """Return the unit-length vector pointing the same way"""
-        a = self.abs()
+        a = self.length()
         if abs(a) < epsilon:
             raise ValueError(f"Can't normalize vector of zero length [{self}]")
         return self / a
@@ -208,7 +208,7 @@ class Vector(tuple[float, ...]):
         point projects beyond an end. If ``a == b`` the result is ``a``."""
         a_vec, b_vec = vec(a), vec(b)
         a_to_b = b_vec - a_vec
-        denom = a_to_b.abs_quad()
+        denom = a_to_b.length_squared()
         if denom == 0:
             return a_vec
         t = (self - a_vec).dot(a_to_b) / denom

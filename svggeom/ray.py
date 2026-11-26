@@ -1,5 +1,5 @@
 from typing import Optional, Sequence
-from math import sqrt, tau
+from math import atan2, cos, radians, sin, sqrt, tau
 from .vector import Vector, vec
 
 
@@ -91,7 +91,7 @@ class VecRay:
 
     def distance_to(self, p: Sequence[float]):
         """Straight-line distance from the origin to the point ``p``."""
-        return self.vector_to(vec(p)).abs()
+        return self.vector_to(vec(p)).length()
 
     def point_at_distance(self, d):
         """The point ``d`` units from the origin along the direction.
@@ -194,7 +194,7 @@ class VecRay:
         This is the foot of the perpendicular from ``p`` when it lies ahead of
         the origin, and the origin itself when ``p`` is behind it."""
         p_vec = vec(p)
-        d2 = self.dir.abs_quad()
+        d2 = self.dir.length_squared()
         if d2 == 0:
             return self.pos
         t = (p_vec - self.pos).dot(self.dir) / d2
@@ -275,3 +275,27 @@ class Ray(VecRay):
         """A new ray whose origin is interpolated from here (``t=0``) to ``p``
         (``t=1``). ``t`` outside ``[0, 1]`` extrapolates. The direction is kept"""
         return self.new_pos(self._pos + (vec(p) - self._pos) * t)
+
+    def rotated(self, rotation: float | Sequence[float]):
+        """A new 2-D ray with its direction rotated counter-clockwise.
+
+        A numeric ``rotation`` is an angle in degrees. A 2-component sequence
+        is a rotation vector: its direction gives the rotation angle (via
+        ``atan2(y, x)``); its length is ignored. The original direction's
+        length and the ray's origin are preserved."""
+        if isinstance(rotation, (int, float)):
+            angle = radians(rotation)
+        else:
+            rotation_vec = vec(rotation)
+            if len(rotation_vec) != 2:
+                raise ValueError("rotation vector must be 2-D")
+            if not any(rotation_vec):
+                raise ValueError("rotation vector must not be zero")
+            angle = atan2(rotation_vec[1], rotation_vec[0])
+
+        if len(self.dir) != 2:
+            raise ValueError("rotation is only supported for 2-D rays")
+
+        c, s = cos(angle), sin(angle)
+        dx, dy = self.dir
+        return self.new_dir(Vector(dx * c - dy * s, dx * s + dy * c))
