@@ -1,5 +1,4 @@
-# tests/geom/test_ray_review.py
-"""Review tests for geom/ray.py."""
+"""Review tests for ./ray.py."""
 
 import unittest
 
@@ -55,8 +54,9 @@ class TestRayPassingBehavior(unittest.TestCase):
         r = Ray((5, -5), (0, 1))
         p = r.intersection_with_line((0, 0), (10, 0))
         self.assertIsNotNone(p)
-        self.assertAlmostEqual(p.x, 5)
-        self.assertAlmostEqual(p.y, 0)
+        if p:
+            self.assertAlmostEqual(p.x, 5)
+            self.assertAlmostEqual(p.y, 0)
 
     def test_forward(self):
         r = Ray((0, 0), (1, 0))

@@ -1,18 +1,10 @@
-"""Tests for geom.pathlc: confirmed bugs (expectedFailure) and working behaviour."""
+"""Tests for .pathlc: confirmed bugs (expectedFailure) and working behaviour."""
 
 import unittest
 from math import isclose, pi
 
 from svggeom.pathlc import PathLC
-from svggeom.pathlc.command import (
-    ArcLC,
-    CloseLC,
-    CubicLC,
-    LineLC,
-    MoveLC,
-    QuadLC,
-)
-from svggeom.vector import vec
+from svggeom.pathlc.command import CloseLC, CubicLC
 from svggeom.matrix import Matrix
 
 
@@ -32,7 +24,7 @@ class TestPathLCWorking(unittest.TestCase):
     def test_point_at_midpoint_line(self):
         p = PathLC.parse("M0,0 L20,0")
         pt = p.point_at(0.5)
-        self.assertTrue(isclose(pt[0], 10.0) and isclose(pt[1], 0.0))
+        self.assertTrue(pt and isclose(pt[0], 10.0) and isclose(pt[1], 0.0))
 
     def test_split_at_half(self):
         p = PathLC.parse("M0,0 L40,0")
@@ -64,7 +56,7 @@ class TestPathLCWorking(unittest.TestCase):
         bb = p.bbox()
         self.assertTrue(bb)
         mid = p.point_at(0.5)
-        self.assertTrue(isclose(mid[0], 20.0, abs_tol=1e-6))
+        self.assertTrue(mid and isclose(mid[0], 20.0, abs_tol=1e-6))
 
     def test_transform_translate_scale(self):
         p = PathLC.parse("M0,0 L10,0")

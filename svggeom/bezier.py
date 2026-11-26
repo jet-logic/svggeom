@@ -114,6 +114,8 @@ class Bezier(list[tuple[FF, FF, FF]]):
         sweep_flag: bool,
         p2: FF,
     ):
+        if not self:
+            raise ValueError("requires a preceding move_to()")
         x1, y1 = self[-1][0]
         x2, y2 = p2
 
@@ -125,6 +127,8 @@ class Bezier(list[tuple[FF, FF, FF]]):
         return self
 
     def quad_to(self, c2: FF, p2: FF):
+        if not self:
+            raise ValueError("requires a preceding move_to()")
         p1 = self[-1][0]
         x1 = 1.0 / 3 * p1[0] + 2.0 / 3 * c2[0]
         x2 = 2.0 / 3 * c2[0] + 1.0 / 3 * p2[0]

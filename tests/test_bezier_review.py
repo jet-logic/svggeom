@@ -1,7 +1,4 @@
-# tests/geom/test_bezier_review.py
 """
-Review tests for geom/bezier.py.
-
 `TestBezierPassingBehavior` guards behaviour that already works.
 `TestBezierConfirmedBugs` asserts the desired behaviour for confirmed bugs;
 they are currently @expectedFailure and will flip to "unexpected success"

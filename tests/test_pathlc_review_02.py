@@ -1,6 +1,4 @@
 """
-Review tests for geom/pathlc/*.py.
-
 Two groups:
   * TestPathLCPassingBehavior  -- locks in behaviour that already works.
   * TestPathLCConfirmedBugs    -- asserts the *desired* behaviour for confirmed

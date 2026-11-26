@@ -1,6 +1,4 @@
-"""Review tests for the `svggeom` package.
-Layout
-------
+"""
 * ``TestVectorRegressions`` / ``TestRayRegressions``
 Passing tests for bugs that were already fixed in the source code.
 * ``TestVectorBugs`` / ``TestRayBugs``

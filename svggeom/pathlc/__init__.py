@@ -125,12 +125,6 @@ class PathLC:
             return seg.slope_at(t)
         return None
 
-    # def point_at(self, T: float):
-    #     seg, t = self.segment_at(T)
-    #     if seg is not None:
-    #         return seg.point_at(t)
-    #     return None
-
     def point_at(self, T: float):
         seg, t = self.segment_at(T)
         if seg is not None:
@@ -139,12 +133,6 @@ class PathLC:
         if self._tail is not None:
             return self._tail.to()
         return None
-
-    # def point_at_length(self, L: float, clamp: bool = False) -> Optional[object]:
-    #     seg, n, N = self.segment_at_length(L, clamp)
-    #     if seg is not None and N != 0:
-    #         return seg.point_at(n / N)
-    #     return None
 
     def point_at_length(self, L: float, clamp: bool = False):
         seg, n, N = self.segment_at_length(L, clamp)
@@ -191,7 +179,9 @@ class PathLC:
                 first = isolated.first()
                 assert first is not None
                 reversed_tail = MoveLC(None, first.to())
-            if isinstance(original_tail, CloseLC) and not isinstance(reversed_tail, MoveLC):
+            if isinstance(original_tail, CloseLC) and not isinstance(
+                reversed_tail, MoveLC
+            ):
                 reversed_tail = CloseLC(reversed_tail._prev, reversed_tail.to())
 
             first_move = reversed_tail

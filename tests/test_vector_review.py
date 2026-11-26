@@ -1,6 +1,4 @@
-# tests/geom/test_vector_review.py
-"""Review tests for geom/vector.py.
-
+"""
 `TestVectorPassingBehavior` guards existing behaviour so fixes can't regress it.
 `TestVectorConfirmedBugs` asserts desired behaviour for the confirmed bugs;
 they are currently @expectedFailure and will flag "unexpected success" once fixed.
@@ -146,7 +144,7 @@ class TestVectorConfirmedBugs(unittest.TestCase):
 
     # @unittest.expectedFailure
     def test_ray_point_along_works(self):
-        """Cross-file evidence that Bug 1 is user-visible via geom.ray."""
+        """Cross-file evidence that Bug 1 is user-visible via ray."""
         r = Ray((0, 0), (1, 0))
         p = r.point_at_distance(5)
         self.assertAlmostEqual(p[0], 5)

@@ -252,7 +252,7 @@ class Ray(VecRay):
     def shifted(
         self,
         pos_delta: Sequence[float],
-        dir_delta: Sequence[float],
+        dir_delta: Sequence[float] = (0, 0),
     ):
         """A new ray with its origin and direction offset by the given vectors.
 
@@ -299,3 +299,26 @@ class Ray(VecRay):
         c, s = cos(angle), sin(angle)
         dx, dy = self.dir
         return self.new_dir(Vector(dx * c - dy * s, dx * s + dy * c))
+
+    def towards(self, coord: Sequence[float], magnitude: float | str = "preserve"):
+        """A new ray pointing from its origin toward ``coord``."""
+        delta = vec(coord) - self.pos
+
+        if not any(delta):
+            raise ValueError("target must differ from ray origin")
+
+        if magnitude == "preserve":
+            length = self.dir.length()
+        elif magnitude == "distance":
+            length = delta.length()
+        elif isinstance(magnitude, (int, float)):
+            length = magnitude
+        else:
+            raise ValueError(
+                "magnitude must be 'preserve', 'distance', or a positive number"
+            )
+
+        if length <= 0:
+            raise ValueError("magnitude must be positive")
+
+        return self.new_dir(delta.normalized() * length)

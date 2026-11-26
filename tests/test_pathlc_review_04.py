@@ -1,14 +1,5 @@
 import unittest
-import sys
-import os
-
-# Add the repo root to path so we can import geom
-# Assuming structure: python/geom/...
-repo_root = os.path.join(os.path.dirname(__file__), "..", "python")
-sys.path.insert(0, os.path.abspath(repo_root))
-
 from svggeom.pathlc import PathLC
-from svggeom.pathlc.command import BaseLC, MoveLC, LineLC, CubicLC, ArcLC
 from svggeom.matrix import Matrix
 
 

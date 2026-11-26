@@ -1,6 +1,6 @@
 from typing import Sequence
-from ...geom.bezier import Bezier
-from ...geom.vector import vec
+from ..bezier import Bezier
+from ..vector import vec
 from ..pathlc import PathLC
 from ..pathlc.command import BaseLC, CubicLC, MoveLC
 
