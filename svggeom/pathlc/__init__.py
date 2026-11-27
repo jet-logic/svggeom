@@ -3,7 +3,7 @@ from typing import Any, Optional, Sequence
 from weakref import WeakKeyDictionary
 
 # from ...numeric import to_float
-from .command import BaseLC, CloseLC, MoveLC
+from .command import BBox, BaseLC, CloseLC, MoveLC
 
 
 class PathLC:
@@ -79,13 +79,13 @@ class PathLC:
     def transform(self, M: Any):
         return PathLC(self._tail.transform(M))
 
-    def bbox(self) -> tuple[tuple[float, float], tuple[float, float]] | None:
-
-        b = None
+    def _bbox(self) -> BBox | None:
+        """Compute the union of command boxes, or None if the path has no geometry."""
+        b: BBox | None = None
         cur: BaseLC | None = self._tail
         while cur:
-            cb = cur.bbox()
-            if cb:
+            cb = cur._bbox()
+            if cb is not None:
                 if b is None:
                     b = cb
                 else:
@@ -97,6 +97,18 @@ class PathLC:
                     )
             cur = cur._prev
         return b
+
+    def bbox(self, *, default: BBox | None = None) -> BBox:
+        """Return the path box, using ``default`` when the path has no geometry.
+
+        Raise ValueError when no box can be computed and ``default`` is None.
+        """
+        result = self._bbox()
+        if result is not None:
+            return result
+        if default is not None:
+            return default
+        raise ValueError("PathLC has no computable bounding box")
 
     def length(self):
         cur: BaseLC | None = self._tail

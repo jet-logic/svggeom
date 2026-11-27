@@ -20,6 +20,7 @@ from ..help.quadhelp import (
 # Mirrors the local tuple helpers already used in help/cubichelp.py & quadhelp.py.
 Pt = Sequence[float]
 FF = Tuple[float, float]
+BBox = tuple[tuple[float, float], tuple[float, float]]
 
 
 def _pt2(p: Pt) -> FF:
@@ -154,8 +155,21 @@ class BaseLC:
         self._prev = prev
         self._to: FF = _pt2(to)
 
-    def bbox(self) -> Sequence[Sequence[float]] | None:
+    def _bbox(self) -> BBox | None:
+        """Compute this command's box, or return None when it has no geometry."""
         return None
+
+    def bbox(self, *, default: BBox | None = None) -> BBox:
+        """Return this command's box, using ``default`` when no box exists.
+
+        Raise ValueError when no box can be computed and ``default`` is None.
+        """
+        result = self._bbox()
+        if result is not None:
+            return result
+        if default is not None:
+            return default
+        raise ValueError(f"{type(self).__name__} has no computable bounding box")
 
     def to(self):
         return self._to
@@ -455,7 +469,7 @@ class BaseLC:
 
 
 class LineLC(BaseLC):
-    def bbox(self):
+    def _bbox(self) -> BBox | None:
         x2, y2, *_ = self._to
         prev = self._prev
         if prev:
@@ -562,7 +576,7 @@ class MoveLC(LineLC):
         prev = self._prev
         return prev.as_curve().move_to(self.to()) if prev else MoveLC(None, self.to())
 
-    def bbox(self):
+    def _bbox(self) -> BBox | None:
         # A MoveLC has no geometry; it must not contribute the "jump"
         # rectangle that LineLC.bbox() would otherwise produce.
         return None
@@ -605,7 +619,7 @@ class QuadLC(BaseLC):
     ) -> tuple[Sequence[float], Sequence[float], Sequence[float]]:
         return (self._from(), self.p, self._to)
 
-    def bbox(self):
+    def _bbox(self) -> BBox:
         (x1, y1), (x2, y2), (x3, y3) = self._pts()
         return (quadratic_extrema(x1, x2, x3), quadratic_extrema(y1, y2, y3))
 
@@ -702,7 +716,7 @@ class CubicLC(BaseLC):
     ) -> Sequence[Sequence[float]]:
         return (self._from(), self.c1, self.c2, self._to)
 
-    def bbox(self):
+    def _bbox(self) -> BBox:
         (x1, y1), (x2, y2), (x3, y3), (x4, y4) = self._pts()
         return (cubic_extrema(x1, x2, x3, x4), cubic_extrema(y1, y2, y3, y4))
 
@@ -839,7 +853,7 @@ class ArcLC(BaseLC):
             cur = cur.curve_to(c1, c2, p2)
         return cur
 
-    def bbox(self):
+    def _bbox(self) -> BBox | None:
         """Return the tight axis-aligned bounds of this elliptical arc.
 
         The cubic conversion in :meth:`as_curve` is an approximation, which
