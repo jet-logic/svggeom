@@ -49,13 +49,17 @@ class TestConfirmedBugs(unittest.TestCase):
         curve.move_to((4, 7))
         self.assertEqual(curve.bounding_box(), ((4, 4), (7, 7)))
 
-    @unittest.expectedFailure
     def test_svg_arc_rotation_uses_degrees(self):
         """SVG A-command rotation is specified in degrees, not radians."""
-        degrees = PathLC.parse("M0,0 A10,5 90 0 1 20,0").point_at(0.5)
-        radians = PathLC.parse(f"M0,0 A10,5 {math.pi / 2} 0 1 20,0").point_at(0.5)
-        self.assertAlmostEqual(degrees[0], radians[0], places=6)
-        self.assertAlmostEqual(degrees[1], radians[1], places=6)
+        d = "M0,0 A10,5 {} 0 1 20,0"
+        ninety = PathLC.parse(d.format(90)).point_at(0.5)
+        # 450 degrees is the same turn plus a full revolution.
+        full_turn_later = PathLC.parse(d.format(450)).point_at(0.5)
+        self.assertAlmostEqual(ninety[0], full_turn_later[0], places=6)
+        self.assertAlmostEqual(ninety[1], full_turn_later[1], places=6)
+        # pi/2 is only ~1.57 degrees, so it must NOT match a 90 degree rotation.
+        tiny = PathLC.parse(d.format(math.pi / 2)).point_at(0.5)
+        self.assertGreater(abs(ninety[1] - tiny[1]), 1.0)
 
     # @unittest.expectedFailure
     def test_segment_at_honours_clamp(self):

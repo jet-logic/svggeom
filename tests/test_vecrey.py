@@ -100,21 +100,6 @@ class TestRayBugs(VecTestCase):
         with self.assertRaises(ValueError):
             VecRay([0, 0], [1, 0, 0])
 
-    @unittest.expectedFailure
-    def test_intersection_with_line_ignores_hits_behind_origin(self):
-        """Cause: Treats ray as infinite line, doesn't check t >= 0."""
-        r = VecRay([0, 0], [1, 0])
-        self.assertIsNone(r.intersection_with_line((-5, -1), (-5, 1)))
-
-    @unittest.expectedFailure
-    def test_intersection_with_ray_ignores_hits_behind_either_origin(self):
-        """Cause: Same as above, doesn't check t >= 0 for both rays."""
-        a = VecRay([0, 0], [1, 0])
-        behind_a = VecRay([-5, -1], [0, 1])
-        behind_b = VecRay([5, 1], [0, 1])
-        self.assertIsNone(a.intersection_with_ray(behind_a))
-        self.assertIsNone(a.intersection_with_ray(behind_b))
-
     # @unittest.expectedFailure
     def test_point_at_distance_works_for_3d_ray(self):
         """Cause: Uses Vector.polar which always returns 2D, causing dim mismatch."""

@@ -95,16 +95,6 @@ class TestPathLCPassingBehavior(unittest.TestCase):
 class TestPathLCConfirmedBugs(unittest.TestCase):
     """Desired behaviour for confirmed bugs; flips to unexpected-success on fix."""
 
-    # Bug 1 -- arc rotation is degrees
-    @unittest.expectedFailure
-    def test_arc_rotation_is_degrees(self):
-        # SVG spec: the A-command rotation is in degrees.
-        # Therefore 90deg must yield exactly the same arc as PI/2 rad.
-        a = PathLC.parse("M0,0 A 10 5 90 0 1 20 0").point_at(0.5)
-        b = PathLC.parse(f"M0,0 A 10 5 {math.pi / 2} 0 1 20 0").point_at(0.5)
-        # self.assertAlmostEqual(a[0], b[0], places=6)
-        self.assertAlmostEqual(a[1], b[1], places=6)
-
     # Bug 2 -- segment_at clamp ignored
     # @unittest.expectedFailure
     def test_segment_at_clamp_is_respected(self):
