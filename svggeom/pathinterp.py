@@ -2,11 +2,11 @@
 Shape morphing between SVG paths.
 
 Handles:
-  • different vertex counts        (arc-length resampling)
-  • different numbers of shapes    (contour matching + degenerate pairs)
-  • holes                          (containment classification + winding normalize)
-  • line, cubic, quad, smooth, arc commands
-  • absolute & relative, M→L implicit lineto
+  - different vertex counts        (arc-length resampling)
+  - different numbers of shapes    (contour matching + degenerate pairs)
+  - holes                          (containment classification + winding normalize)
+  - line, cubic, quad, smooth, arc commands
+  - absolute & relative, M->L implicit lineto
 
 Usage:
     interp = SVGPathInterpolator(src_d, tgt_d)
@@ -422,7 +422,7 @@ def classify_contours(contours: List[Contour]) -> None:
 
 
 def normalize_winding(contours: List[Contour]) -> None:
-    """Outers one direction, holes the other — so morph frames stay consistent."""
+    """Outers one direction, holes the other -> so morph frames stay consistent."""
     for c in contours:
         a = c.signed_area()
         if c.is_hole and a > 0:
@@ -517,7 +517,7 @@ def _match_cost(a: Contour, b: Contour, bbox_diag: float) -> float:
 
 
 def match_contours(src: List[Contour], tgt: List[Contour], bbox_diag: float):
-    """Greedy pairing (holes↔holes, outers↔outers).  Leftovers pair with None."""
+    """Greedy pairing (holes<->holes, outers<->outers).  Leftovers pair with None."""
     src_o = [c for c in src if not c.is_hole]
     src_h = [c for c in src if c.is_hole]
     tgt_o = [c for c in tgt if not c.is_hole]
@@ -671,7 +671,7 @@ class SVGPathInterpolator:
 if __name__ == "__main__":
     import os
 
-    # Square-with-square-hole  →  Circle-with-circular-hole
+    # Square-with-square-hole  ->  Circle-with-circular-hole
     src = "M 10 10 L 90 10 L 90 90 L 10 90 Z " "M 35 35 L 35 65 L 65 65 L 65 35 Z"
     tgt = (
         "M 10 50 A 40 40 0 1 0 90 50 A 40 40 0 1 0 10 50 Z "
