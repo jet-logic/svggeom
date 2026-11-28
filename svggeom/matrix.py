@@ -65,6 +65,8 @@ class Matrix:
     def __neg__(self):
         """Returns an inverted transformation"""
         det = (self.arg1 * self.arg1.conjugate()) - (self.arg2 * self.arg2.conjugate())
+        if det == 0:
+            raise ValueError("Matrix is singular and cannot be inverted")
 
         # invert the rotation/scaling part
         na1 = self.arg1.conjugate() / det
@@ -130,7 +132,7 @@ class Matrix:
         """Format the given matrix into a string representation for svg"""
         hexad = self.to_hexad()
         if self.is_translate():
-            if not self:
+            if self.is_identity():
                 return ""
             return f"translate({self.e:.6g}, {self.f:.6g})"
         if self.is_scale():
@@ -188,8 +190,13 @@ class Matrix:
         return self
 
     def add_skew_from_axis(self, skew: float, axis: float):
+        """Add a shear of ``skew`` degrees parallel to the line through the
+        origin at ``axis`` degrees; points on that line stay where they are.
+
+        Both angles are in degrees, like :meth:`add_rotate`, :meth:`add_skewx`
+        and :meth:`add_skewy`."""
         self.add_rotate(axis)
-        self @= Matrix.hexad(c=tan(skew))
+        self @= Matrix.hexad(c=tan(radians(skew)))
         self.add_rotate(-axis)
         return self
 

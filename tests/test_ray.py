@@ -1,5 +1,7 @@
+import math
 import pickle
 import unittest
+from math import pi
 
 from svggeom.ray import Ray, RayIntersection, VecRay
 from svggeom.vector import Vector
@@ -231,3 +233,175 @@ class TestRayIntersection(unittest.TestCase):
         self.assertEqual(restored, hit)
         self.assertEqual((restored.t_self, restored.t_other), (2, 1))
         self.assertTrue(restored.is_forward)
+
+
+class TestRayIteration(unittest.TestCase):
+
+    def test_iterating_a_ray_yields_its_origin_coordinates(self):
+        self.assertEqual(tuple(Ray((3, 4), (1, 0))), (3, 4))
+        self.assertEqual(list(Ray((1, 2, 3), (0, 0, 1))), [1, 2, 3])
+
+
+class TestRayConstructors(GeomTestCase):
+
+    def test_defaults_are_the_origin_pointing_along_x(self):
+        r = Ray()
+        self.assertEqual((r.pos, r.dir), (Vector(0, 0), Vector(1, 0)))
+
+    def test_new_ray_ignores_the_current_ray(self):
+        r = Ray((9, 9), (0, 5)).new_ray((1, 2), (3, 4))
+        self.assertEqual((r.pos, r.dir), (Vector(1, 2), Vector(3, 4)))
+
+    def test_new_dir_keeps_the_origin(self):
+        r = Ray((1, 2), (1, 0)).new_dir(Vector(0, 3))
+        self.assertEqual((r.pos, r.dir), (Vector(1, 2), Vector(0, 3)))
+
+    def test_new_dir_rejects_the_zero_vector(self):
+        with self.assertRaises(ValueError):
+            Ray().new_dir(Vector(0, 0))
+
+    def test_new_pos_keeps_the_direction(self):
+        r = Ray((1, 2), (3, 4)).new_pos(Vector(7, 8))
+        self.assertEqual((r.pos, r.dir), (Vector(7, 8), Vector(3, 4)))
+
+
+class TestRayOrientation(GeomTestCase):
+
+    def test_pointing_with_an_angle_gives_a_unit_direction(self):
+        # The old direction's length (5) is discarded.
+        r = Ray((1, 1), (3, 4)).pointing(pi / 2)
+        self.assertEqual(r.pos, Vector(1, 1))
+        self.assertVecAlmostEqual(r.dir, (0, 1))
+
+    def test_pointing_with_a_vector_uses_it_as_given(self):
+        self.assertEqual(Ray().pointing((2, 3)).dir, Vector(2, 3))
+
+    def test_oriented_takes_degrees(self):
+        self.assertVecAlmostEqual(Ray((1, 1), (3, 4)).oriented(90).dir, (0, 1))
+        self.assertVecAlmostEqual(Ray().oriented(180).dir, (-1, 0))
+
+    def test_towards_preserves_length_by_default(self):
+        r = Ray((0, 0), (3, 4)).towards((10, 0))
+        self.assertVecAlmostEqual(r.dir, (5, 0))
+
+    def test_towards_magnitude_modes(self):
+        ray = Ray((0, 0), (3, 4))
+        self.assertVecAlmostEqual(ray.towards((10, 0), "distance").dir, (10, 0))
+        self.assertVecAlmostEqual(ray.towards((10, 0), 2.5).dir, (2.5, 0))
+
+    def test_towards_is_measured_from_the_origin(self):
+        r = Ray((1, 1), (2, 0)).towards((1, 6))
+        self.assertEqual(r.pos, Vector(1, 1))
+        self.assertVecAlmostEqual(r.dir, (0, 2))
+
+    def test_towards_rejects_bad_arguments(self):
+        ray = Ray((0, 0), (1, 0))
+        cases = {
+            "target equals origin": ((0, 0), "preserve"),
+            "unknown mode": ((5, 5), "huge"),
+            "zero magnitude": ((5, 5), 0),
+            "negative magnitude": ((5, 5), -1),
+        }
+        for name, (target, magnitude) in cases.items():
+            with self.subTest(name):
+                with self.assertRaises(ValueError):
+                    ray.towards(target, magnitude)
+
+
+class TestRayQueries(GeomTestCase):
+
+    def test_negative_distance_goes_backwards(self):
+        self.assertVecAlmostEqual(Ray((0, 0), (2, 0)).point_at_distance(-3), (-3, 0))
+        self.assertVecAlmostEqual(Ray((0, 0), (0, 2)).advanced(-3).pos, (0, -3))
+
+    def test_direction_length_is_ignored_when_advancing(self):
+        self.assertVecAlmostEqual(Ray((0, 0), (10, 0)).advanced(2).pos, (2, 0))
+        self.assertVecAlmostEqual(Ray((0, 0), (10, 0)).point_at_distance(2), (2, 0))
+
+    def test_distance_to_a_diagonal_line(self):
+        # Distance from (0, 10) to the line y = x is 10 / sqrt(2).
+        d = Ray((0, 10), (1, 0)).distance_to_line((0, 0), (10, 10))
+        self.assertAlmostEqual(d, 10 / 2**0.5)
+
+    def test_distance_to_an_undefined_line_is_nan(self):
+        self.assertTrue(math.isnan(Ray().distance_to_line((1, 1), (1, 1))))
+
+    def test_distance_to_line_is_not_clamped_to_the_segment(self):
+        self.assertAlmostEqual(Ray((100, 5), (1, 0)).distance_to_line((0, 0), (10, 0)), 5.0)
+
+    def test_closest_point_on_segment(self):
+        r = Ray((3, 5), (1, 0))
+        self.assertVecAlmostEqual(r.closest_point_on_segment((0, 0), (10, 0)), (3, 0))
+        # Clamped to the nearest end.
+        self.assertVecAlmostEqual(r.closest_point_on_segment((5, 0), (10, 0)), (5, 0))
+
+    def test_closest_point_to_with_a_vanishing_direction_is_the_origin(self):
+        # |dir|**2 underflows to 0 for a (legal) denormal-scale direction.
+        p = Ray((1, 1), (1e-200, 0)).closest_point_to((5, 5))
+        self.assertEqual(p, Vector(1, 1))
+
+    def test_intersection_with_a_diagonal_line(self):
+        p = Ray((0, 5), (1, 0)).intersection_with_line((0, 0), (10, 10))
+        self.assertVecAlmostEqual(p, (5, 5))
+
+    def test_intersection_with_ray_is_2d_only(self):
+        r3 = VecRay([0, 0, 0], [1, 0, 0])
+        with self.assertRaises(ValueError):
+            r3.intersection_with_ray(r3)
+        with self.assertRaises(ValueError):
+            VecRay([0, 0], [1, 0]).intersection_with_ray(r3)
+
+
+class TestRayWithOffsetOriginsAndNonUnitDirections(GeomTestCase):
+    """Cases where the origin is not (0, 0) and directions are not unit length,
+    so that sign or scaling mistakes cannot cancel out."""
+
+    def test_vector_to_and_distance_to_are_relative_to_the_origin(self):
+        r = Ray((3, 4), (1, 0))
+        self.assertEqual(r.vector_to((5, 9)), Vector(2, 5))
+        self.assertAlmostEqual(r.distance_to((6, 8)), 5.0)
+
+    def test_side_of_uses_the_origin(self):
+        r = Ray((10, 10), (1, 0))
+        self.assertEqual(r.side_of((0, 11)), 1)
+        self.assertEqual(r.side_of((20, 9)), -1)
+        self.assertEqual(r.side_of((-5, 10)), 0)
+        # Direction (0, 1): left of travel is -x.
+        self.assertEqual(Ray((10, 10), (0, 1)).side_of((9, 0)), 1)
+
+    def test_distance_to_axis_parallel_lines(self):
+        horizontal = Ray((0, 5), (1, 0)).distance_to_line((-10, 3), (10, 3))
+        self.assertAlmostEqual(horizontal, 2.0)
+        vertical = Ray((5, 0), (0, 1)).distance_to_line((3, -10), (3, 10))
+        self.assertAlmostEqual(vertical, 2.0)
+
+    def test_closest_point_to_with_an_offset_origin(self):
+        r = Ray((10, 10), (2, 0))
+        self.assertVecAlmostEqual(r.closest_point_to((14, 15)), (14, 10))
+        self.assertVecAlmostEqual(r.closest_point_to((0, 15)), (10, 10))
+
+    def test_intersection_with_line_not_through_the_origin(self):
+        # Ray along y = 2 meets the vertical line x = 4.
+        p = Ray((1, 2), (1, 0)).intersection_with_line((4, 0), (4, 10))
+        self.assertVecAlmostEqual(p, (4, 2))
+        # ... and a line that is offset from the origin diagonally.
+        p = Ray((0, 0), (0, 1)).intersection_with_line((2, 3), (4, 7))
+        self.assertVecAlmostEqual(p, (0, -1))
+
+    def test_intersection_with_ray_between_offset_rays_with_scaled_directions(self):
+        a = VecRay((1, 1), (2, 0))
+        b = VecRay((5, -4), (0, 3))
+        hit = a.intersection_with_ray(b)
+        self.assertEqual(hit, (5, 1))
+        self.assertAlmostEqual(hit.t_self, 2)  # 1 + 2*2 = 5
+        self.assertAlmostEqual(hit.t_other, 5 / 3)  # -4 + 3*(5/3) = 1
+        self.assertTrue(hit.is_forward)
+
+    def test_intersection_parameters_on_offset_rays_behind_the_origin(self):
+        a = VecRay((10, 10), (0, 1))
+        b = VecRay((20, 0), (-1, 0))
+        hit = a.intersection_with_ray(b)
+        self.assertEqual(hit, (10, 0))
+        self.assertAlmostEqual(hit.t_self, -10)
+        self.assertAlmostEqual(hit.t_other, 10)
+        self.assertFalse(hit.is_forward)

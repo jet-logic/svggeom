@@ -151,3 +151,144 @@ class TestVector(GeomTestCase):
         b = m.apply_to_point(v)
         self.assertAlmostEqual(a[0], b[0])
         self.assertAlmostEqual(a[1], b[1])
+
+
+class TestVectorConstruction(GeomTestCase):
+
+    def test_rejects_non_numeric_components(self):
+        for args in (("a", 1), (None,), ((1, 2),)):
+            with self.subTest(args=args):
+                with self.assertRaises(TypeError):
+                    Vector(*args)
+
+    def test_coordinate_accessors(self):
+        v = Vector(1, 2, 3)
+        self.assertEqual((v.x, v.y, v.z), (1, 2, 3))
+
+    def test_z_on_a_2d_vector_raises_attribute_error(self):
+        with self.assertRaises(AttributeError):
+            _ = Vector(1, 2).z
+
+    def test_empty_vector(self):
+        v = Vector()
+        self.assertEqual(len(v), 0)
+        self.assertTrue(v.is_close(()))
+
+    def test_from_spherical_zero_radius_is_the_3d_origin(self):
+        self.assertEqual(Vector.from_spherical(0, 1, 1), Vector(0, 0, 0))
+
+    def test_from_polar_defaults_to_the_unit_x_vector(self):
+        self.assertVecAlmostEqual(Vector.from_polar(), (1, 0))
+
+
+class TestVectorAngles(GeomTestCase):
+
+    def test_radians_degrees_and_gradians_per_quadrant(self):
+        cases = {
+            (1, 0): (0.0, 0.0, 0.0),
+            (0, 1): (pi / 2, 90.0, 100.0),
+            (-1, 0): (pi, 180.0, 200.0),
+            (0, -1): (3 * pi / 2, 270.0, 300.0),
+        }
+        for (x, y), (rad, deg, grad) in cases.items():
+            with self.subTest(x=x, y=y):
+                v = Vector(x, y)
+                self.assertAlmostEqual(v.radians, rad)
+                self.assertAlmostEqual(v.degrees, deg)
+                self.assertAlmostEqual(v.gradians, grad)
+
+    def test_angle_ignores_extra_dimensions(self):
+        self.assertAlmostEqual(Vector(0, 2, 99).degrees, 90.0)
+
+
+class TestVectorReflectedOperators(unittest.TestCase):
+    """Plain sequences on the left of ``+`` / ``-``."""
+
+    def test_sequence_minus_vector(self):
+        r = (5, 5) - Vector(1, 2)
+        self.assertIsInstance(r, Vector)
+        self.assertEqual(r, (4, 3))
+
+    def test_sequence_plus_vector_is_a_vector(self):
+        self.assertIsInstance([1, 2] + Vector(3, 4), Vector)
+
+    def test_dimension_mismatch_still_raises_value_error(self):
+        with self.assertRaises(ValueError):
+            Vector(1, 2) - Vector(1, 2, 3)
+        with self.assertRaises(ValueError):
+            (1, 2, 3) + Vector(1, 2)
+        with self.assertRaises(ValueError):
+            (1, 2, 3) - Vector(1, 2)
+
+    def test_non_sequences_are_not_supported(self):
+        with self.assertRaises(TypeError):
+            5 + Vector(1, 2)
+        with self.assertRaises(TypeError):
+            5 - Vector(1, 2)
+
+
+class TestVectorAxisHelpers(unittest.TestCase):
+
+    def test_with_axis_replaces_one_component(self):
+        v = Vector(1, 2, 3)
+        self.assertEqual(v.with_x(9), (9, 2, 3))
+        self.assertEqual(v.with_y(9), (1, 9, 3))
+        self.assertEqual(v.with_z(9), (1, 2, 9))
+
+    def test_with_z_pads_a_2d_vector(self):
+        self.assertEqual(Vector(1, 2).with_z(3), (1, 2, 3))
+
+    def test_shift_axis_adds_to_one_component(self):
+        v = Vector(1, 2, 3)
+        self.assertEqual(v.shift_x(10), (11, 2, 3))
+        self.assertEqual(v.shift_y(10), (1, 12, 3))
+        self.assertEqual(v.shift_z(10), (1, 2, 13))
+
+    def test_shift_axis_pads_short_vectors_with_zero(self):
+        self.assertEqual(Vector().shift_x(5), (5,))
+        self.assertEqual(Vector(1).shift_y(5), (1, 5))
+        self.assertEqual(Vector(1, 2).shift_z(5), (1, 2, 5))
+
+    def test_helpers_return_new_vectors(self):
+        v = Vector(1, 2)
+        self.assertIsNot(v.with_x(1), v)
+        self.assertEqual(v, (1, 2))
+
+
+class TestVectorMisc(GeomTestCase):
+
+    def test_is_close_edge_cases(self):
+        inf = math.inf
+        self.assertTrue(Vector(inf, 0).is_close((inf, 0)))
+        self.assertFalse(Vector(inf, 0).is_close((-inf, 0)))
+        self.assertFalse(Vector(1, 2).is_close((1, 2 + 1e-9)))
+        self.assertTrue(Vector(1, 2).is_close((1, 2 + 1e-9), abs_tol=1e-6))
+
+    def test_apply_svg_matrix_keeps_extra_dimensions(self):
+        r = Vector(1, 2, 7).apply_svg_matrix((2, 0, 0, 3, 10, 20))
+        self.assertEqual(r, (12, 26, 7))
+
+    def test_apply_svg_matrix_general_hexad(self):
+        # x' = a*x + c*y + e ; y' = b*x + d*y + f
+        r = Vector(1, 2).apply_svg_matrix((1, 2, 3, 4, 5, 6))
+        self.assertEqual(r, (1 * 1 + 3 * 2 + 5, 2 * 1 + 4 * 2 + 6))
+
+    def test_normalized_honours_epsilon(self):
+        with self.assertRaises(ValueError):
+            Vector(1e-3, 0).normalized(epsilon=1e-2)
+        self.assertVecAlmostEqual(Vector(1e-3, 0).normalized(), (1, 0))
+
+
+class TestVectorSphericalCoordinates(GeomTestCase):
+
+    def test_general_angles(self):
+        # radius 2, azimuth 90 degrees, polar angle 30 degrees from +z
+        self.assertVecAlmostEqual(Vector.from_spherical(2, pi / 2, pi / 6), (0, 1, 3**0.5))
+        self.assertVecAlmostEqual(Vector.from_spherical(2, 0, pi / 6), (1, 0, 3**0.5))
+
+    def test_result_has_the_requested_radius(self):
+        self.assertAlmostEqual(Vector.from_spherical(3, 1.1, 0.7).length(), 3.0)
+
+    def test_poles(self):
+        self.assertVecAlmostEqual(Vector.from_spherical(4, 1.0, 0), (0, 0, 4))
+        self.assertVecAlmostEqual(Vector.from_spherical(4, 1.0, pi), (0, 0, -4))

@@ -79,9 +79,11 @@ class Interval(tuple[float, float]):
         return self + other
 
     def __and__(self, other: "Interval") -> "Interval":
-        """Calculate the bounding interval where both given bounding intervals overlap"""
+        """Calculate the bounding interval where both given bounding intervals overlap
+
+        ``None`` counts as the empty interval, the zero for intersection."""
         if other is None:
-            return Interval(self)
+            return Interval()
         other = Interval(other)
         min_val = max(self.minimum, other.minimum)
         max_val = min(self.maximum, other.maximum)
@@ -90,14 +92,17 @@ class Interval(tuple[float, float]):
         return Interval((min_val, max_val))
 
     def __rand__(self, other):
-        if other is None:
-            return Interval(self)
         return self & other
 
     def __mul__(self, other) -> "Interval":
         if other is None:
             return Interval(self)
         return Interval((self.minimum * other, self.maximum * other))
+
+    def __rmul__(self, other) -> "Interval":
+        # Without this, ``2 * Interval(1, 2)`` silently falls back to tuple
+        # repetition and yields ``(1, 2, 1, 2)``.
+        return self * other
 
     def __iter__(self) -> Generator[float, None, None]:
         yield self.minimum
@@ -111,11 +116,16 @@ class Interval(tuple[float, float]):
         except ValueError:
             return False
 
+    def __ne__(self, other) -> bool:
+        # tuple defines its own __ne__, which would bypass the __eq__ above
+        # (e.g. ``Interval(5) == 5`` and ``Interval(5) != 5`` were both true).
+        return not self == other
+
     def __contains__(self, value) -> bool:
         return self.minimum <= value <= self.maximum
 
     def __repr__(self) -> str:
-        return f"BoundingInterval({self.minimum}, {self.maximum})"
+        return f"Interval({self.minimum}, {self.maximum})"
 
     @property
     def center(self) -> float:
@@ -279,6 +289,10 @@ class BoundingBox:  # pylint: disable=too-few-public-methods
         new = BoundingBox(self)
         new *= factor
         return new
+
+    def __rmul__(self, factor):
+        # type: (float) -> BoundingBox
+        return self * factor
 
     def __imul__(self, factor):
         # type: (float) -> BoundingBox
